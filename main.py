@@ -15,16 +15,21 @@ the results are not stable as the vector dimension of data point is 3 and the nu
 
 from qiskit import *
 import matplotlib.pyplot as plt
-from qiskit import tools
-from qiskit.tools.visualization import plot_histogram, plot_state_city
+#from qiskit import tools
+from qiskit.visualization import plot_histogram, plot_state_city
 from qiskit.circuit.library import MCMT, MCXGate, Measure
-from qiskit.extensions import UnitaryGate
+from qiskit.circuit.library import UnitaryGate
 import numpy as np
+
+import qiskit  #modificación
+from qiskit_aer import Aer
+print (qiskit.__version__)
 
 
 
 
 import pprint
+#pip install -U scikit-learn
 from sklearn.datasets import load_digits
 from sklearn.neighbors import KNeighborsClassifier
 from sklearn.metrics import classification_report
@@ -111,11 +116,10 @@ class QKNN:
             for j in range(self.n_total):
                 circuit.ccx(pR[j],uR[1],mR[j])
             
-            """circuit.draw(output = "mpl")
+            '''circuit.draw(output = "mpl")
             plt.tight_layout()
-            plt.show()"""
+            plt.show()'''
             self.main_circuit.append(circuit.to_instruction(), self.main_pR[:self.n_total]+ self.main_uR[:2] + self.main_mR[:self.n_total])
-        
         
         return self.main_circuit
 
@@ -142,7 +146,14 @@ class QKNN:
         oR = ClassicalRegister(self.class_n, "o")
         
         predictCircuit = QuantumCircuit(xR, self.main_mR, aR, auR, cR, oR)
-        circuit = self.main_circuit + predictCircuit
+        #circuit = self.main_circuit + predictCircuit
+        circuit = QuantumCircuit(self.main_pR, self.main_uR, self.main_mR, xR, aR, auR, cR, oR) #modificación
+        circuit.append(self.main_circuit.to_instruction(), self.main_pR[:self.n_total]+ self.main_uR[:2] + self.main_mR[:self.n_total])
+        #circuit.compose(predictCircuit)
+        
+        '''circuit.draw(output = "mpl")
+        plt.tight_layout()
+        plt.show()'''
         
         circuit.barrier()
 
@@ -180,10 +191,17 @@ class QKNN:
             circuit.measure(self.main_mR[self.n+i],oR[i])
         
         
+        circuit.draw(output = "mpl")
+        plt.tight_layout()
+        plt.show()
 
 
-        simulator = Aer.get_backend("qasm_simulator")
-        results = execute(circuit,simulator, shots=self.shots).result()
+        #simulator = Aer.get_backend("qasm_simulator")
+        #results = execute(circuit,simulator, shots=self.shots).result()
+        backend = Aer.get_backend('qasm_simulator') #modificación
+        transpiled = qiskit.transpile(circuit, backend=backend)
+        job = backend.run(transpiled, shots=self.shots)
+        results = job.result()
     
         result_dict = results.get_counts(circuit)
 
